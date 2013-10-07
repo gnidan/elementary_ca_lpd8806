@@ -342,8 +342,8 @@ boolean stepForPixel(rule_t rule, int i)
    *
    * next,    bitwise-AND  the mask with the rule:
    *
-   *     0b    0     0     1     0     0     0     0     0  
-   *  &  0b    0     1     1     0     1     0     1     0
+   *     0b    0     0     1     0     0     0     0     0    mask
+   *  &  0b    0     1     1     0     1     0     1     0    rule
    *  ----------------------------------------------------
    *     0b    0     0     1     0     0     0     0     0 
    * 
