@@ -132,7 +132,7 @@ void loop()
     resetBufferAges();
     
     // debugging for funsies
-    Serial.println(currentRule);
+    Serial.println( (int) currentRule );
   }
 
   caStepNumber++;
