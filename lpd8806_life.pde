@@ -395,7 +395,7 @@ color_t gradient(color_t color1, color_t color2, int percent)
   color_channel_t delta_b = (c2_b - c1_b) * percent / 100;
 
   return strip.Color(c1_r + delta_r,
-  c1_g + delta_g,
-  c1_b + delta_b);
+                     c1_g + delta_g,
+                     c1_b + delta_b);
 }
 
