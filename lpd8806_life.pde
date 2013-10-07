@@ -281,6 +281,7 @@ boolean stepForPixel(rule_t rule, int i)
    * to figure out if a cell will be alive in the next step:
    *
    *   1. convert the 3-tuple (prev, cur, next) into a 3 bit binary integer:
+   *        (0 for off, 1 for on)
    *
    *           prev ----.    cur    ,---- next
    *                    |     |     |
