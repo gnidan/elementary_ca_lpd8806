@@ -1,9 +1,25 @@
 #include <LPD8806.h>
 #include "SPI.h"
 
-//#define RULE 0b11111111
-#define RULE 30
 #define WRAP true
+
+int rules[] = {
+  110,
+  38,
+  30,
+  150,
+  73,
+  15,
+  45,
+  105,
+  106,
+  184
+};
+int numRules = 10;
+
+/*
+int rules[] = { 173 }; int numRules = 1;
+ */
 
 #if defined(USB_SERIAL) || defined(USB_SERIAL_ADAFRUIT)
 // this is for teensyduino support
@@ -24,47 +40,49 @@ boolean nextBuffer[NUM_PIXELS];
 
 int bufferAges[NUM_PIXELS];
 
-int stepLength = 500;
+int stepLength = 100;
 int fadeStepCount = 10;
 int fadePhaseLength = 2 * stepLength / 3;
-int holdPhaseLength = 1 * stepLength / 3;  
+int holdPhaseLength = stepLength / 3;  
+
+int caStepNumber = 0;
+int ruleCycleTime = 15000;
+int ruleSteps = ruleCycleTime / stepLength;
+int currentRule = rules[(caStepNumber / ruleSteps) % numRules];
 
 uint32_t ageColors[] = {
-  strip.Color(0, 0, 127),
-  strip.Color(0, 63, 63),
-  strip.Color(0, 127, 0),
-  strip.Color(63, 63, 0),
-  strip.Color(127, 0, 0)
-};
+  strip.Color(84, 11, 127),
+  strip.Color(127, 59, 4),
+  strip.Color(127, 126, 4),
+  strip.Color(127, 10, 72),
+  strip.Color(4, 127, 123)
+  };
 
-int maxAge = 4;
-  
+  int maxAge = 4;
+
 
 /************************
  * MAIN ARDUINO FUNCTIONS
  ***********************/
 void setup() {
-    // setup random seed
+  // setup random seed
   Serial.begin(9600);
   randomSeed(analogRead(0));
-  Serial.println(RULE);
 
   /*
-  
   boolean temp[32] = {1, 1, 1, 1, 1, 1, 1, 1,
-                      1, 1, 1, 1, 1, 1, 1, 1,
-                      1, 1, 1, 1, 1, 1, 1, 1,
-                      1, 1, 1, 1, 1, 1, 1, 1};
-  int i;
-  for(i = 0; i < 32; i++) {
-    buffer[i] = temp[i];
-  }
-        
-  */
-  
+   1, 1, 1, 1, 1, 1, 1, 1,
+   1, 1, 1, 1, 1, 1, 1, 1,
+   1, 1, 1, 1, 1, 1, 1, 1};
+   int i;
+   for(i = 0; i < 32; i++) {
+   buffer[i] = temp[i];
+   }*/
+
+
   fillBufferRandomly();
   resetBufferAges();
-  
+
   // Start up the LED strip
   strip.begin();
 
@@ -78,13 +96,23 @@ void loop() {
   uint8_t saturation;
   int i, j;
   int percent;
-  
-  caStep(RULE);
-  
+  int prevRule = currentRule;
+
+  currentRule = rules[(caStepNumber / ruleSteps) % numRules];
+  if(prevRule != currentRule) {
+    fillBufferRandomly();
+    resetNextBuffer();
+    resetBufferAges();
+    Serial.println(currentRule);
+  }
+
+  caStepNumber++;
+  caStep(currentRule);
+
   for (i = 1; i <= fadeStepCount; i++) {
     uint32_t color;
     percent = 100 * i / fadeStepCount;
-    
+
     for (j=0; j < strip.numPixels(); j++) {
       int age = bufferAges[j];
 
@@ -95,7 +123,7 @@ void loop() {
         else {
           color = gradient(ageColors[age], ageColors[age + 1], percent);
         }
-        
+
         strip.setPixelColor(j, color);
       }
       else if(nextBuffer[j] && !buffer[j]) {
@@ -107,11 +135,11 @@ void loop() {
         strip.setPixelColor(j, color);
       }
     }
-    
+
     strip.show();
     delay(fadeStepLength);
   }
-  
+
   delay(holdPhaseLength);
   updateBuffer();
 }
@@ -127,6 +155,15 @@ void fillBufferRandomly()
   {
     rnd = random(2);
     buffer[i] = rnd;
+  }
+}
+
+void resetNextBuffer()
+{
+  int i;
+  for (i = 0; i < NUM_PIXELS; i++)
+  {
+    nextBuffer[i] = 0;
   }
 }
 
@@ -161,7 +198,7 @@ void updateBuffer()
     else {
       bufferAges[i] = 0;
     }
-    
+
     buffer[i] = nextBuffer[i];
   }
 }
@@ -172,7 +209,7 @@ void updateBuffer()
 
 void caStep(uint8_t rule) {
   int i;
-  
+
   for (i = 0; i < strip.numPixels(); i++) {
     int on = stepForPixel(rule, i);
     nextBuffer[i] = on;
@@ -183,7 +220,7 @@ boolean stepForPixel(uint8_t rule, int i) {
   boolean prev, cur, next;
   unsigned int pattern;
   unsigned int mask;
-  
+
   // calculate prev, cur, next
   prev = false;
   cur = false;
@@ -194,34 +231,34 @@ boolean stepForPixel(uint8_t rule, int i) {
   else if (WRAP && i == 0 && buffer[strip.numPixels() - 1]) {
     prev = true;
   }
-   
+
   if (buffer[i]) {
     cur = true;
   }
-    
+
   if (i < strip.numPixels() - 1 && buffer[i + 1]) {
     next = true;
   }
   else if (WRAP && i == strip.numPixels() - 1 && buffer[0]) {
     next = true;
   }
-   
-   
-   // calculate mask
-   pattern = 0b0;
-   if (prev)
-     pattern = pattern | 0b100;
-   if (cur)
-     pattern = pattern | 0b10;
-   if (next)
-     pattern = pattern | 0b1;
-   
-   mask = 1 << (pattern);
 
-   if (rule & mask)
-     return true;
-   else
-     return false;
+
+  // calculate mask
+  pattern = 0b0;
+  if (prev)
+    pattern = pattern | 0b100;
+  if (cur)
+    pattern = pattern | 0b10;
+  if (next)
+    pattern = pattern | 0b1;
+
+  mask = 1 << (pattern);
+
+  if (rule & mask)
+    return true;
+  else
+    return false;
 }
 
 /************************
@@ -245,16 +282,17 @@ uint32_t gradient(uint32_t color1, uint32_t color2, int percent)
   uint8_t c1_r = red(color1);
   uint8_t c1_g = green(color1);
   uint8_t c1_b = blue(color1);  
-  
+
   uint8_t c2_r = red(color2);
   uint8_t c2_g = green(color2);
   uint8_t c2_b = blue(color2);  
-  
+
   uint8_t delta_r = (c2_r - c1_r) * percent / 100;
   uint8_t delta_g = (c2_g - c1_g) * percent / 100;
   uint8_t delta_b = (c2_b - c1_b) * percent / 100;
-  
+
   return strip.Color(c1_r + delta_r,
-                     c1_g + delta_g,
-                     c1_b + delta_b);
+  c1_g + delta_g,
+  c1_b + delta_b);
 }
+
