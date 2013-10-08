@@ -73,19 +73,11 @@ color_t ageColors[][MAX_AGE + 1] = {
 int numColorPalettes = 3;
 
 /*******************************
- * MEMORY ALLOCATION
- ******************************/
-boolean buffer[NUM_PIXELS];
-boolean nextBuffer[NUM_PIXELS];
-int bufferAges[NUM_PIXELS];
-
-
-/*******************************
  * TIMING
  ******************************/
 
 // How long should each step take? (ms)
-int stepLength = 1000;
+int stepLength = 500;
 
 // Granularity of color fading; how many intermediate colors should the
 // fade pass through
@@ -105,6 +97,12 @@ int ruleSteps = ruleCycleTime / stepLength;
 int currentRule = rules[(caStepNumber / ruleSteps) % numRules];
 
 
+/*******************************
+ * MEMORY ALLOCATION
+ ******************************/
+boolean buffer[NUM_PIXELS];
+boolean nextBuffer[NUM_PIXELS];
+int bufferAges[NUM_PIXELS];
 
 
 /************************
