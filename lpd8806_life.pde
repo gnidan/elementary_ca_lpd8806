@@ -39,6 +39,39 @@ rule_t rules[] = {
 };
 int numRules = 10;
 
+
+/******************************
+ * COLOR PALETTE
+ *****************************/
+#define MAX_AGE 4
+
+color_t ageColors[][MAX_AGE + 1] = {
+  {
+    strip.Color(84, 11, 127),
+    strip.Color(127, 59, 4),
+    strip.Color(127, 126, 4),
+    strip.Color(127, 10, 72),
+    strip.Color(4, 127, 123)
+  },
+  {
+    strip.Color(0, 0, 127),
+    strip.Color(0, 63, 63),
+    strip.Color(0, 127, 0),
+    strip.Color(63, 63, 0),
+    strip.Color(127, 0, 0)
+  },
+  {
+    strip.Color(0, 102, 00),
+    strip.Color(103, 0, 58),
+    strip.Color(127, 58, 0),
+    strip.Color(127, 0, 0),
+    strip.Color(127, 127, 127)
+  }
+};
+
+
+int numColorPalettes = 3;
+
 /*******************************
  * MEMORY ALLOCATION
  ******************************/
@@ -52,7 +85,7 @@ int bufferAges[NUM_PIXELS];
  ******************************/
 
 // How long should each step take? (ms)
-int stepLength = 300;
+int stepLength = 1000;
 
 // Granularity of color fading; how many intermediate colors should the
 // fade pass through
@@ -72,18 +105,6 @@ int ruleSteps = ruleCycleTime / stepLength;
 int currentRule = rules[(caStepNumber / ruleSteps) % numRules];
 
 
-/******************************
- * COLOR PALETTE
- *****************************/
-color_t ageColors[] = {
-  strip.Color(84, 11, 127),
-  strip.Color(127, 59, 4),
-  strip.Color(127, 126, 4),
-  strip.Color(127, 10, 72),
-  strip.Color(4, 127, 123)
-};
-
-int maxAge = 4;
 
 
 /************************
@@ -121,10 +142,15 @@ void loop()
   int i, j;
   int prevRule = currentRule;
   int fadePercent;
+  color_t *currentPalette;
   color_t color;
 
   // figure out the current rule
   currentRule = rules[(caStepNumber / ruleSteps) % numRules];
+  
+  // figure out the palette to use for the current rule
+  currentPalette = ageColors[(caStepNumber / ruleSteps) % numColorPalettes];
+  
   if(prevRule != currentRule) {
     // if we're resetting to a new rule, let's reset the buffer.
     fillBufferRandomly();
@@ -154,11 +180,11 @@ void loop()
       
       // if the pixel is staying alive, fade from its current age to its next age
       if (nextBuffer[j] && buffer[j]) {
-        if (age == maxAge) {       // after awhile, the pixel won't age any more.
-          color = ageColors[age];
+        if (age == MAX_AGE) {       // after awhile, the pixel won't age any more.
+          color = currentPalette[age];
         }
         else {
-          color = gradient(ageColors[age], ageColors[age + 1], fadePercent);
+          color = gradient(currentPalette[age], currentPalette[age + 1], fadePercent);
         }
 
         strip.setPixelColor(j, color);
@@ -166,13 +192,13 @@ void loop()
       
       // else if the pixel is being born, fade in
       else if(nextBuffer[j] && !buffer[j]) {
-        color = gradient(strip.Color(0,0,0), ageColors[0], fadePercent);
+        color = gradient(strip.Color(0,0,0), currentPalette[0], fadePercent);
         strip.setPixelColor(j, color); 
       }
       
       // else if the pixel is dying, fade out
       else if(buffer[j] && !nextBuffer[j]) {
-        color = gradient(ageColors[age], strip.Color(0,0,0), fadePercent);
+        color = gradient(currentPalette[age], strip.Color(0,0,0), fadePercent);
         strip.setPixelColor(j, color);
       }
     }
@@ -236,7 +262,7 @@ void updateBuffer()
   int i;
   for (i = 0; i < strip.numPixels(); i++) {
     if (buffer[i] && nextBuffer[i]) {
-      if (bufferAges[i] != maxAge) {
+      if (bufferAges[i] != MAX_AGE) {
         bufferAges[i] += 1;
       }
     }
